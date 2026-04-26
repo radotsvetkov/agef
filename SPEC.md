@@ -1,10 +1,10 @@
-# AGEF v0.1 Specification
+# AGEF v0.1.1 Specification
 
 ## 1. Status and Versioning
 
-This document defines **AGEF v0.1** (Agent Governance Evidence Format), a pre-stable format for portable, tamper-evident AI agent session evidence.
+This document defines **AGEF v0.1.1** (Agent Governance Evidence Format), a pre-stable format for portable, tamper-evident AI agent session evidence.
 
-This specification is versioned independently from any implementation. Repositories MAY tag this text as `v0.1.0-seed` while the wire format version remains `v0.1`.
+This specification is versioned independently from any implementation. Repositories MAY tag this text as `v0.1.1-seed` while the wire format version remains `v0.1`.
 
 Per pre-stable policy, **v0.x MAY introduce breaking changes**. Readers and writers MUST check `agef_version` and reject unsupported versions.
 
@@ -95,7 +95,7 @@ Each event **MUST** encode the following fields:
 - `sequence` **MUST** start at 0 and increase by exactly 1 per event.
 - Every event except `SessionStart` **MUST** have at least one parent.
 - `SessionStart` **MUST** have exactly zero parents.
-- In v0.1, every non-`SessionStart` event **MUST** have exactly one parent: the immediately preceding event by `sequence`. Multi-parent events are reserved for future versions.
+- In v0.1, every non-`SessionStart` event **MUST** have exactly one parent, and that parent **MUST** equal the hash of the immediately preceding event by `sequence`. Multi-parent events are reserved for future versions.
 - `parents` entries **MUST** reference previously seen event hashes in the same bundle.
 - Event hash **MUST** be computed over canonical CBOR bytes of the full event envelope.
 - Event ordering in `events.bin` **MUST** match `sequence`.
@@ -218,7 +218,12 @@ Within CBOR-encoded events, hashes **MUST** be encoded as CBOR byte strings (maj
 - `manifest.json` **MUST** be UTF-8 JSON with LF endings.
 - JSON object keys in `manifest.json` **MUST** be sorted.
 - Canonical encoding requirements apply to any structured CBOR payload used for event hashing.
-- Timestamps in CBOR-encoded events **MUST** use CBOR tag 1 (epoch-based time, number), expressed as integer seconds since Unix epoch in UTC. Sub-second precision **MAY** be encoded as a floating-point number under the same tag. Timestamps in `manifest.json` **MUST** use RFC3339 strings.
+- Timestamps in CBOR-encoded events **MUST** use CBOR tag 1 (epoch-based time, number).
+- Producers **MAY** emit tag 1 timestamps as either integer epoch seconds (UTC) or floating-point values for sub-second precision.
+- Readers **MUST** accept both integer and floating-point tag 1 timestamp encodings.
+- The `akmon-journal` v0.1 reference implementation emits integer epoch seconds.
+- Implementations **MAY** use any internal storage format; AGEF canonical-CBOR requirements apply only to events emitted in `events.bin` and to bytes used for event hashing.
+- Timestamps in `manifest.json` **MUST** use RFC3339 strings.
 
 ## 13. Verification Procedure
 
@@ -292,6 +297,17 @@ Known libraries often used for canonical CBOR implementations:
 - JavaScript/TypeScript: `cbor-x`
 
 These are known to produce RFC 8949 canonical encoding when configured correctly. Implementers should validate canonical-encoding behavior with test vectors before claiming conformance.
+
+### 17.1 Conformance Profiles
+
+AGEF defines two conformance profiles in v0.1:
+
+- **Bundle Profile**: an implementation that produces and/or consumes AGEF bundles per Sections 5-14.
+- **Substrate Profile**: an implementation that maintains a content-addressed event journal compatible with AGEF semantics, but does not necessarily produce bundles directly.
+
+A Substrate Profile implementation **MUST** be able to produce Bundle Profile output via an export pathway when required.
+
+`akmon-journal` is currently a Substrate Profile implementation. Akmon's planned Phase 4 export/import functionality is intended to provide Bundle Profile capability.
 
 ## 18. Licensing Note for Spec Text
 
