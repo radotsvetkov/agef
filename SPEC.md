@@ -4,7 +4,7 @@
 
 This document defines **AGEF v0.1.1** (Agent Governance Evidence Format), a pre-stable format for portable, tamper-evident AI agent session evidence.
 
-This specification is versioned independently from any implementation. Repositories MAY tag this text as `v0.1.1-seed` while the wire format version remains `v0.1`.
+This specification is versioned independently from any implementation. Repositories MAY tag this text as `v0.1.1-seed`. Bundles claiming conformance to **AGEF v0.1.1** **MUST** set `manifest.json` `agef_version` to `"0.1.1"` (three-part semantic version; see Section 6).
 
 Per pre-stable policy, **v0.x MAY introduce breaking changes**. Readers and writers MUST check `agef_version` and reject unsupported versions.
 
@@ -53,7 +53,7 @@ Additional files **MAY** be present, but verifiers **MUST** ignore unknown non-n
 
 It **MUST** contain:
 
-- `agef_version` (string, required; for this spec: `"0.1"`)
+- `agef_version` (string, required): **MUST** be a three-part semantic version string (`major.minor.patch`). For this specification: `"0.1.1"`.
 - `producer` (object, required)
   - `name` (string, required)
   - `version` (string, required)

@@ -19,7 +19,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   - producers may emit CBOR tag 1 timestamps as integer or float,
   - readers must accept both forms,
   - `akmon-journal` v0.1 reference behavior is documented as integer-seconds emission.
-- Updated spec document version label from v0.1 to v0.1.1 (wire format remains `agef_version: "0.1"`).
+
+### Fixed
+- **`agef_version` wire format clarification.**
+  `manifest.json` `agef_version` MUST be a three-part semantic version string. For AGEF v0.1.1 the value is `"0.1.1"`. Earlier 0.1.0-seed documentation suggested a two-part form (`"0.1"`); that wording is corrected. The three-part form has always been required by the reference implementation and is now reflected in the specification text.
 
 ## [0.1.0-seed] - 2026-04-26
 

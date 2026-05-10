@@ -3,9 +3,9 @@
 AGEF is an open specification for portable, tamper-evident AI-agent session evidence. It defines how a session can be represented as content-addressed objects plus merkle-linked events so evidence can be verified offline, transferred across systems, and reviewed by independent tools.
 
 **Status:** `v0.1.1` (pre-stable).  
-Wire-format version remains `agef_version: "0.1"`.
+Bundles set **`agef_version`** to **`"0.1.1"`** in `manifest.json` (three-part semver; see `SPEC.md` Section 6).
 
-The reference implementation is currently provided by [Akmon](https://github.com/radotsvetkov/akmon), with journaling substrate support in `akmon-journal` and planned bundle export/import support in Akmon Phase 4.
+The reference implementation is [Akmon](https://github.com/radotsvetkov/akmon) (**v2.0.0** and later ship bundle export and import, with journaling in `akmon-journal`).
 
 ## Conformance Profiles
 
