@@ -1,12 +1,14 @@
-# AGEF v0.1.1 Specification
+# AGEF v0.1.2 Specification
 
 ## 1. Status and Versioning
 
-This document defines **AGEF v0.1.1** (Agent Governance Evidence Format), a pre-stable format for portable, tamper-evident AI agent session evidence.
+This document defines **AGEF v0.1.2** (Agent Governance Evidence Format), a pre-stable format for portable, tamper-evident AI agent session evidence.
 
-This specification is versioned independently from any implementation. Repositories MAY tag this text as `v0.1.1-seed`. Bundles claiming conformance to **AGEF v0.1.1** **MUST** set `manifest.json` `agef_version` to `"0.1.1"` (three-part semantic version; see Section 6).
+This specification is versioned independently from any implementation. Repositories MAY tag this text as `v0.1.2-seed`. A bundle's `manifest.json` `agef_version` (three-part semantic version; see Section 6) **MUST** name the highest feature layer the bundle uses: `"0.1.1"` for the baseline bundle format, or `"0.1.2"` when the bundle carries detached signatures (`manifest.signatures[]`, Section 19).
 
-Per pre-stable policy, **v0.x MAY introduce breaking changes**. Readers and writers MUST check `agef_version` and reject unsupported versions.
+AGEF v0.1.2 is an **additive minor**: the `signatures` envelope is OPTIONAL, and a bundle that omits it is byte-for-byte a valid v0.1.1 bundle. Within the `0.1.x` line, a reader **MUST** accept any `0.1.x` `agef_version` it does not specifically recognize and **MUST** ignore unknown `manifest.json` fields. A v0.1.1 reader therefore reads a v0.1.2 bundle unchanged, ignoring `signatures`.
+
+Per pre-stable policy, **v0.x MAY introduce breaking changes** across minor lines. Readers and writers **MUST** check `agef_version` and reject values outside a `major.minor` line they support.
 
 ## 2. Conformance Language
 
@@ -27,7 +29,7 @@ AGEF defines a format for recording one AI-agent session as a portable bundle wi
 AGEF does **not** define:
 - agent runtime behavior,
 - model correctness guarantees,
-- identity/signing standards for actor attribution (signing is expected in later versions).
+- a full signature or cryptographic-identity *standard*. AGEF v0.1.2 adds an OPTIONAL detached-signature envelope over the session head (`manifest.signatures[]`; see Section 19), but it mandates no PKI, no key-distribution mechanism, no keyless/Sigstore signing, and no transparency log. Public-key trust is established out of band.
 
 ## 4. Core Terms
 
@@ -68,6 +70,17 @@ It **MUST** contain:
 
 Writers **MUST** ensure `event_count` and `object_count` match actual bundle contents.
 Readers **MUST** reject malformed or incomplete required fields.
+
+`manifest.json` **MAY** additionally contain optional fields. Readers **MUST** ignore any field they do not recognize (forward compatibility within the `0.1.x` line). The following optional fields are defined:
+
+- `signatures` (array, optional; AGEF v0.1.2): detached signatures over the session head. Absence means the bundle is unsigned. Each entry is an object with:
+  - `scheme` (string, required): signature scheme; `"ed25519"` in v0.1.2.
+  - `key_id` (string, required): lowercase-hex SHA-256 digest of the raw 32-byte public key.
+  - `statement_version` (string, required): `"AGEF-SIG-v1"`.
+  - `signature` (string, required): lowercase-hex detached signature bytes.
+  - `created_at` (RFC3339 timestamp, required): self-reported signing time; **NOT** part of the signed statement.
+
+  Signatures are manifest metadata, outside the event hash chain (Section 19). Adding or counter-signing entries does not change the head or any event/object hash. Multiple entries are permitted (counter-signing).
 
 ## 7. Events Stream (`events.bin`)
 
@@ -250,6 +263,8 @@ Given a bundle, verifier **MUST**:
 
 Verifiers **MUST** fail on first invariant violation in default operation. Verifiers **MAY** offer an optional "report-all mode" that continues past failures and emits a complete diagnostic report; behavior in this mode is implementation-defined.
 
+Signature verification (Section 19) is OPTIONAL and **independent** of the procedure above: a verifier **MUST** complete the integrity checks regardless of whether signatures are present, and the presence, absence, or validity of signatures **MUST NOT** affect the integrity verdict.
+
 ## 14. Rejection Rules
 
 A reader/verifier **MUST** reject if any of the following occur:
@@ -270,20 +285,23 @@ A reader/verifier **MUST** reject if any of the following occur:
 
 A reader **MAY** expose partial diagnostics for corrupted bundles but **MUST NOT** claim successful verification unless all required checks pass.
 
+When signature verification is performed against a trusted key (Section 19), a `signatures[]` entry that fails to verify under a trusted key matching its `key_id` **MUST** cause rejection. This signature-level check is independent of, and subsequent to, the integrity-level rejection rules above.
+
 ## 15. Compatibility and Evolution
 
-- v0.x is pre-stable: breaking changes are permitted.
+- v0.x is pre-stable: breaking changes are permitted across minor lines.
+- Within the `0.1.x` line, changes are additive: AGEF v0.1.2 introduces the OPTIONAL `manifest.signatures[]` envelope (Section 19) and changes nothing else. A v0.1.1 reader reads a v0.1.2 bundle unchanged, ignoring the field.
 - Future versions **SHOULD** preserve forward migration guidance.
 - v1.0 is intended as first stable major.
 - New event kinds in future majors **MUST** be version-gated.
-- v0.1 readers **MUST NOT** silently ignore unknown required semantics.
+- v0.1 readers **MUST NOT** silently ignore unknown required semantics, but **MUST** ignore unknown OPTIONAL manifest fields within a supported `0.1.x` line.
 
 ## 16. Security Considerations
 
 AGEF provides tamper-evidence and portability; it does not provide identity attribution by itself.
 
 Implications:
-- If producer trust is required, external signing **SHOULD** be applied.
+- AGEF v0.1.2 defines an OPTIONAL detached-signature layer (Section 19) for attributability; external signing tools **MAY** also be applied. Such a signature attests to the signing *key*, whose trust is established out of band.
 - Bundles may contain sensitive content; storage and sharing controls **MUST** be handled by operators.
 - Verification checks integrity, not semantic correctness of model/tool outputs.
 
@@ -313,3 +331,58 @@ A Substrate Profile implementation **MUST** be able to produce Bundle Profile ou
 
 The normative spec text in `SPEC.md` is intended for CC BY 4.0 licensing.
 Reference implementations may use different licenses.
+
+## 19. Detached Signatures (v0.1.2, OPTIONAL)
+
+AGEF v0.1.2 defines an OPTIONAL detached-signature envelope so a session's *attributability* can be verified by a third party, independently of the producer. Signing is additive: it never alters the event hash chain, the objects store, or any content hash. AGEF is not a cryptographic-identity or PKI standard (Section 3.2); this layer is a signature envelope only, and key trust is established out of band.
+
+### 19.1 Signed Statement (`AGEF-SIG-v1`)
+
+Signers do not sign the bare head hash. They sign a canonical, domain-separated UTF-8 statement. The statement **MUST** be encoded exactly as follows: fixed field order, a single `\n` (LF) after every line including the last, and no other whitespace:
+
+```
+AGEF-SIG-v1
+agef_version:0.1.2
+hash_algorithm:<sha256|blake3>
+session_id:<uuid>
+head:<lowercase-hex-of-session-head>
+```
+
+The `AGEF-SIG-v1` first line versions the statement independently of the bundle. Binding `session_id`, `hash_algorithm`, and `head` prevents a signature from being replayed as if it covered a different session, algorithm, or protocol.
+
+### 19.2 Schemes
+
+v0.1.2 defines one scheme:
+
+- `ed25519` — a raw Ed25519 signature (RFC 8032) over the statement bytes. The public key is distributed as SPKI/PEM (openssl-compatible).
+
+`ecdsa-p256` with X.509 is **reserved** for PKI-oriented deployments and **MAY** land in a later minor. Keyless/transparency-log schemes are out of scope for the `0.1.x` line. (OpenPGP was considered and rejected by the reference implementation: every pure-Rust OpenPGP implementation transitively requires the advisory-bearing `rsa` crate.)
+
+### 19.3 Placement
+
+Signatures live in `manifest.signatures[]` (Section 6). Because the head already commits to the entire DAG, a single signature authenticates the whole session; multiple entries allow counter-signing. Signatures are manifest metadata and are excluded from event hashing — adding or counter-signing never mutates the head or any event/object hash.
+
+### 19.4 Verification
+
+Signature verification is OPTIONAL and runs only after, and independently of, the Section 13 integrity checks. Given one or more trusted public keys, a verifier reconstructs the `AGEF-SIG-v1` statement (§19.1) from the manifest's `agef_version`, `hash_algorithm`, `session.id`, and `session.head`, then verifies each `signatures[]` entry under its named `scheme`. Outcomes:
+
+- trusted key present and signature valid ⇒ **verified**;
+- trusted key present (matching the entry `key_id`) and signature invalid ⇒ **hard failure** (Section 14);
+- signatures present but no trusted key available ⇒ **unverified (no key)** — integrity is still established and this is not a failure;
+- no signatures present ⇒ **unsigned** — not a failure.
+
+A verifier **MAY** offer a `require-signature` mode that treats absent or unverified signatures as failure.
+
+### 19.5 Offline Verification with `openssl`
+
+Because `ed25519` signs the raw statement bytes, a third party can verify a signature with stock `openssl` and no AGEF tooling. Given the statement bytes in `statement.bin`, the detached signature bytes in `signature.bin`, and the signer's public key in `pubkey.pem`:
+
+```
+openssl pkeyutl -verify -pubin -inkey pubkey.pem -rawin -in statement.bin -sigfile signature.bin
+```
+
+An Ed25519 public key in SPKI DER form is the fixed 12-byte prefix `30 2a 30 05 06 03 2b 65 70 03 21 00` followed by the raw 32-byte public key (44 bytes total); `pubkey.pem` is the PEM encoding of those bytes. The `key_id` recorded in `manifest.signatures[]` is the lowercase-hex SHA-256 of the raw 32-byte key.
+
+### 19.6 Trust Model
+
+Public keys are distributed out of band; AGEF specifies no PKI, web-of-trust, or transparency log in v0.1.2. Existence-at-time anchoring (e.g. RFC-3161 timestamping or a transparency log such as Rekor) is a possible future additive layer, not part of v0.1.2.
