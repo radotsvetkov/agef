@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) for specification text revisions.
 
+## [0.1.3-seed] - 2026-06-06
+
+### Added
+- **OPTIONAL operator attestations (`manifest.operator_attestations[]`).** AGEF v0.1.3 adds an additive, OPTIONAL operator-attestation envelope (new Section 20) binding an accountable operator/human identity to the session head — addressing the EU AI Act Art. 14 / Art. 12(3) accountability axis without PKI/DID/cloud. Absence means the session is "unattributed" (still fully valid). Each entry carries `scheme` (`ed25519`), `key_id` (lowercase-hex SHA-256 of the raw 32-byte operator public key), `statement_version` (`AGEF-OPERATOR-v1`), the signed identity fields `operator_id`/`display_name`/`role`/`org`, `signature` (lowercase hex), and a non-signed `created_at`.
+- **`AGEF-OPERATOR-v1` signed statement**, domain-separated from `AGEF-SIG-v1` (distinct first-line tag + field set), binding `session_id` + `head` to prevent transplanting an attestation onto another session. Identity fields are signed and MUST contain no `\n`/`\r`.
+- Offline `openssl` verification recipe for the operator statement, and `require-operator` / `require-operator-key` verification modes; per-attestation outcomes (verified / hard failure / unverified-no-key / unattributed).
+- **Normative honesty rule:** "verified" attaches to the operator *key*, never to the self-asserted identity string; trust in the name → key mapping is out of band.
+
+### Changed
+- Section 3.2 adds an explicit non-goal: AGEF is not a human-identity, PKI, or DID standard; the operator binding is a separately-signed claim with out-of-band key trust.
+- Sections 1/13/14/15/16 record v0.1.3 as an additive minor and extend verification independence, rejection rules, compatibility, and security notes to the operator layer. v0.1.1 and v0.1.2 readers read v0.1.3 bundles unchanged, ignoring the new field.
+
 ## [0.1.2-seed] - 2026-06-06
 
 ### Added
