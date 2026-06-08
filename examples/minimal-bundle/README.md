@@ -2,6 +2,8 @@
 
 This directory is a **concrete** AGEF v0.1.1 bundle: the normative layout from `SPEC.md` Section 5 (`manifest.json`, `events.bin`, `objects/<hex>`), plus a portable archive of the same bytes.
 
+**Why this example is still `v0.1.1`.** It is deliberately a baseline bundle — no signatures, no operator attestations — so its `agef_version` stays `"0.1.1"` even though the specification has since grown two optional layers: detached signatures (`manifest.signatures[]`, v0.1.2) and operator attestations (`manifest.operator_attestations[]`, v0.1.3). Both layers are additive and optional, so an unsigned, unattributed bundle like this one remains fully valid and verifies unchanged. To produce a signed or attested bundle instead, run `akmon bundle sign` or `akmon bundle attest`; each writes manifest metadata only and leaves the event hash chain and object hashes untouched.
+
 ## Producer and date
 
 - **Producer:** [Akmon](https://github.com/radotsvetkov/akmon) v2.0.0 (reference implementation).
